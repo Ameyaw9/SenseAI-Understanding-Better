@@ -1,0 +1,7 @@
+{
+  "name": "SenseAI - Understanding Better",
+  "description": "An inclusive, multimodal AI tutor designed for accessibility, featuring deep reasoning, generated diagrams, and spatial descriptions for the visually impaired.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
