@@ -1,6 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Mic, Send, BrainCircuit, Sparkles, Loader2, Image as ImageIcon, Accessibility, Volume2, PlayCircle, StopCircle, MicOff, Waves, ChevronRight } from 'lucide-react';
+import { 
+  Mic, 
+  BrainCircuit, 
+  Loader2, 
+  Image as ImageIcon, 
+  Accessibility, 
+  Waves, 
+  Brain, 
+  MicOff, 
+  StopCircle, 
+  PlayCircle, 
+  ScanFace, 
+  Ear, 
+  MoveRight 
+} from 'lucide-react';
 import { AppState, GeneratedContent } from './types';
 import { generateExplanation, generateDiagram, generateSpeech, transcribeAudio } from './services/geminiService';
 import AudioPlayer from './components/AudioPlayer';
@@ -19,6 +33,9 @@ export default function App() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  // Determine layout state
+  const isIdle = !content && appState === AppState.IDLE && !error;
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -29,7 +46,7 @@ export default function App() {
   const simulateVoiceInput = () => {
     setQuery("");
     setError(null);
-    setAppState(AppState.RECORDING); // Visually similar to recording
+    setAppState(AppState.RECORDING);
     let i = 0;
     const interval = setInterval(() => {
       setQuery(SIMULATION_QUERY.slice(0, i));
@@ -79,9 +96,7 @@ export default function App() {
 
       recorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        // Stop all stream tracks
         stream.getTracks().forEach(track => track.stop());
-        
         await handleTranscription(audioBlob, mimeType);
       };
 
@@ -92,7 +107,7 @@ export default function App() {
       if (err.name === 'NotAllowedError') {
         setError("Microphone access blocked. Please allow permissions.");
       } else {
-        setError("Could not access microphone. Please ensure your device has a mic.");
+        setError("Could not access microphone.");
       }
       setAppState(AppState.IDLE);
     }
@@ -101,7 +116,6 @@ export default function App() {
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
-      // State change happens in onstop
     } else {
       setAppState(AppState.IDLE);
     }
@@ -148,7 +162,6 @@ export default function App() {
     setContent(null);
 
     try {
-      // Step 1: Text & Spatial Description
       const explanationData = await generateExplanation(query);
       
       const initialContent: GeneratedContent = {
@@ -157,11 +170,8 @@ export default function App() {
       };
       setContent(initialContent);
 
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-
       setAppState(AppState.COMPLETED);
       
-      // Step 2: Parallel fetch for Image and Audio
       generateDiagram(explanationData.imagePrompt)
         .then(imageUrl => {
           if (imageUrl) {
@@ -187,147 +197,203 @@ export default function App() {
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuery(e.target.value);
-    // Clear error if user starts typing manually after a voice error
     if (error) setError(null);
   };
 
+  // --- Components ---
+
+  const Logo = () => (
+    <div className="flex items-center gap-3 select-none">
+      <div className="relative w-10 h-10">
+        <svg viewBox="0 0 40 40" className="w-full h-full drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+           <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" className="text-slate-700/50" strokeWidth="1" />
+           <path d="M10 28 L16 14 L24 24 L32 8" fill="none" stroke="currentColor" className="text-cyan-400" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+           <circle cx="10" cy="28" r="3" className="fill-slate-900 stroke-cyan-400" strokeWidth="2" />
+           <circle cx="16" cy="14" r="3" className="fill-slate-900 stroke-cyan-400" strokeWidth="2" />
+           <circle cx="24" cy="24" r="3" className="fill-slate-900 stroke-cyan-400" strokeWidth="2" />
+           <circle cx="32" cy="8" r="3" className="fill-slate-900 stroke-cyan-400" strokeWidth="2" />
+        </svg>
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="text-2xl font-bold text-white tracking-tight leading-none">Sense<span className="text-cyan-400">AI</span></span>
+        <span className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-[0.2em] leading-none mt-1">Understanding Better</span>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen">
-      {/* Dynamic Background Blobs */}
-      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[100px] animate-blob"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 blur-[100px] animate-blob animation-delay-2000"></div>
+    <div className="min-h-screen flex flex-col font-sans text-slate-100">
+      
+      {/* Background Ambience */}
+      <div className="fixed inset-0 z-[-1] bg-[#020617]">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[128px] animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[128px] animate-pulse delay-1000" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-950/70 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.location.reload()}>
-              <div className="relative">
-                <svg width="42" height="28" viewBox="0 0 48 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)] group-hover:drop-shadow-[0_0_12px_rgba(34,211,238,0.6)] transition-all duration-300">
-                  <path d="M4 22 L14 10 L24 20 L34 6 L44 14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="4" cy="22" r="3" className="fill-slate-900" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="14" cy="10" r="3" className="fill-slate-900" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="24" cy="20" r="3" className="fill-slate-900" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="34" cy="6" r="3" className="fill-slate-900" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="44" cy="14" r="3" className="fill-slate-900" stroke="currentColor" strokeWidth="2" />
-                </svg>
-              </div>
-              <span className="text-2xl font-bold text-white tracking-tight">Sense<span className="text-cyan-400">AI</span></span>
-            </div>
-            
-            <div className="hidden sm:block h-8 w-px bg-white/10"></div>
-            <p className="hidden sm:block text-sm text-slate-400 font-medium tracking-wide uppercase">Understanding Better</p>
-          </div>
-          <div className="flex gap-2">
-            <div className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 border transition-colors ${
-              appState === AppState.RECORDING 
-                ? 'bg-red-500/10 text-red-400 border-red-500/20' 
-                : 'bg-white/5 text-slate-400 border-white/5'
-            }`}>
-               {appState === AppState.RECORDING && <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />}
-               {appState === AppState.RECORDING ? 'Recording Audio' : 'System Ready'}
-            </div>
-          </div>
+      {/* Navbar - Only shows full content when NOT idle, otherwise minimal */}
+      <header className={`fixed top-0 w-full z-50 transition-all duration-500 ${isIdle ? 'bg-transparent py-6' : 'bg-slate-950/80 backdrop-blur-xl border-b border-white/5 py-3'}`}>
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+           <div className={`transition-opacity duration-500 ${isIdle ? 'opacity-0' : 'opacity-100'}`}>
+              <Logo />
+           </div>
+           
+           <div className="flex items-center gap-4">
+              {appState === AppState.RECORDING && (
+                 <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-red-400 text-xs font-medium animate-pulse">
+                   <div className="w-2 h-2 bg-red-500 rounded-full" />
+                   Recording...
+                 </div>
+              )}
+           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 lg:px-6 py-10 space-y-12">
+      <main className="flex-1 flex flex-col w-full max-w-7xl mx-auto px-4 lg:px-6 pt-24 pb-12">
         
-        {/* Input Section */}
-        <section className="max-w-4xl mx-auto animate-fade-in">
-          <div className={`relative group transition-all duration-500 ${error ? 'ring-2 ring-red-500/50' : 'focus-within:ring-2 focus-within:ring-cyan-500/30'}`}>
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 rounded-2xl opacity-20 group-hover:opacity-40 blur transition duration-500"></div>
+        {/* --- IDLE STATE: HERO SECTION --- */}
+        <div className={`flex flex-col items-center justify-center transition-all duration-700 ease-in-out ${isIdle ? 'flex-1 translate-y-0 opacity-100' : 'h-0 opacity-0 overflow-hidden translate-y-[-50px]'}`}>
+          
+          <div className="mb-10 scale-150">
+            <Logo />
+          </div>
+
+          <h1 className="text-4xl md:text-5xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-6 max-w-3xl leading-tight">
+            Inclusive Intelligence for <br />
+            <span className="text-cyan-400">Everyone.</span>
+          </h1>
+
+          <p className="text-slate-400 text-center max-w-xl mb-12 text-lg leading-relaxed">
+            SenseAI bridges the gap between complex technical concepts and accessibility using 
+            multimodal generation. Ask, listen, and visualize.
+          </p>
+
+        </div>
+
+        {/* --- INPUT AREA --- */}
+        <div className={`w-full max-w-3xl mx-auto transition-all duration-700 z-10 ${isIdle ? 'translate-y-0' : 'translate-y-0'}`}>
+          <div className={`relative group transition-all duration-300 ${error ? 'ring-2 ring-red-500/50 rounded-3xl' : 'hover:ring-1 hover:ring-cyan-500/30 rounded-3xl'}`}>
             
-            <div className="relative bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
-              <div className="p-1">
-                <textarea
-                  ref={textareaRef}
-                  className="w-full bg-transparent p-6 min-h-[140px] outline-none text-xl text-slate-200 placeholder-slate-500 resize-none font-light leading-relaxed scrollbar-thin scrollbar-thumb-slate-700"
-                  placeholder="Ask a complex question or describe a concept you want to visualize..."
-                  value={query}
-                  onChange={handleTextChange}
-                  disabled={appState === AppState.RECORDING || appState === AppState.TRANSCRIBING || appState === AppState.PROCESSING_TEXT}
-                />
-              </div>
+            {/* Glow Effect */}
+            <div className={`absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-indigo-500 to-cyan-500 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-500 ${isIdle ? 'opacity-30' : 'opacity-10'}`}></div>
+            
+            <div className="relative bg-slate-900/90 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+              <textarea
+                ref={textareaRef}
+                className="w-full bg-transparent p-6 min-h-[80px] outline-none text-xl text-slate-100 placeholder-slate-500 resize-none font-light leading-relaxed scrollbar-hide"
+                placeholder={isIdle ? "Ask a complex question..." : "Ask follow up..."}
+                rows={isIdle ? 3 : 1}
+                value={query}
+                onChange={handleTextChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleProcess();
+                  }
+                }}
+                disabled={appState === AppState.RECORDING || appState === AppState.TRANSCRIBING || appState === AppState.PROCESSING_TEXT}
+              />
               
-              <div className="flex items-center justify-between px-6 pb-6 pt-2">
-                 <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between px-4 pb-4 pt-2">
+                <div className="flex items-center gap-2">
                    <button 
                       onClick={toggleRecording}
                       disabled={appState === AppState.TRANSCRIBING || appState === AppState.PROCESSING_TEXT}
-                      className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all duration-300 font-medium text-sm overflow-hidden group/btn ${
+                      className={`p-3 rounded-full transition-all duration-200 ${
                         appState === AppState.RECORDING 
-                          ? "bg-red-500/10 text-red-400 hover:bg-red-500/20" 
-                          : "bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white"
+                          ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" 
+                          : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
                       }`}
+                      title="Voice Input"
                    >
-                     {appState === AppState.RECORDING ? <MicOff size={18} /> : <Mic size={18} />}
-                     <span>{appState === AppState.RECORDING ? "Stop Recording" : "Voice Input"}</span>
-                     {appState === AppState.RECORDING && <span className="absolute inset-0 border border-red-500/30 rounded-xl animate-pulse"></span>}
+                     {appState === AppState.RECORDING ? <MicOff size={20} /> : <Mic size={20} />}
                    </button>
-
-                   <button
-                      onClick={simulateVoiceInput}
-                      disabled={appState !== AppState.IDLE && appState !== AppState.ERROR}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-cyan-300 hover:bg-cyan-950/30 transition-colors"
-                    >
-                     <PlayCircle size={16} />
-                     <span>Try Demo</span>
-                   </button>
-                 </div>
-
-                 <button
-                    onClick={handleProcess}
-                    disabled={!query || (appState !== AppState.IDLE && appState !== AppState.ERROR && appState !== AppState.COMPLETED)}
-                    className="group/process relative inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none transition-all duration-300"
-                 >
-                   {appState === AppState.PROCESSING_TEXT || appState === AppState.TRANSCRIBING ? (
-                     <Loader2 size={20} className="animate-spin" />
-                   ) : (
-                     <Sparkles size={20} className="group-hover/process:animate-pulse" />
+                   
+                   {isIdle && (
+                     <button
+                        onClick={simulateVoiceInput}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium bg-slate-800 text-slate-400 hover:text-cyan-300 hover:bg-slate-700 transition-colors"
+                      >
+                       <PlayCircle size={14} />
+                       <span>Try Demo</span>
+                     </button>
                    )}
-                   <span>{appState === AppState.TRANSCRIBING ? "Listening..." : "Explain"}</span>
-                   <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/20"></div>
-                 </button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500 hidden sm:block">
+                    {query.length > 0 ? `${query.length} chars` : 'Markdown supported'}
+                  </span>
+                  <button
+                      onClick={handleProcess}
+                      disabled={!query || (appState !== AppState.IDLE && appState !== AppState.ERROR && appState !== AppState.COMPLETED)}
+                      className={`relative flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold text-white transition-all duration-300 ${
+                        !query 
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-[1.02]'
+                      }`}
+                  >
+                    {appState === AppState.PROCESSING_TEXT || appState === AppState.TRANSCRIBING ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <Brain size={20} />
+                    )}
+                    <span>{appState === AppState.TRANSCRIBING ? "Thinking..." : "Explain"}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Processing State */}
-        {(appState === AppState.PROCESSING_TEXT || appState === AppState.TRANSCRIBING) && (
-           <div className="flex justify-center py-16 animate-fade-in">
-              <div className="flex flex-col items-center gap-6">
-                 <div className="relative w-20 h-20">
-                   <div className="absolute inset-0 rounded-full border-t-2 border-cyan-400 animate-spin"></div>
-                   <div className="absolute inset-2 rounded-full border-r-2 border-blue-500 animate-spin animation-delay-500"></div>
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <BrainCircuit size={32} className="text-cyan-400 animate-pulse" />
-                   </div>
-                 </div>
-                 <div className="flex flex-col items-center gap-1">
-                   <p className="text-lg text-slate-200 font-medium">
-                      {appState === AppState.TRANSCRIBING ? "Transcribing your voice..." : "Analyzing complex architecture..."}
-                   </p>
-                   <p className="text-sm text-slate-500">SenseAI is processing multimodal data</p>
-                 </div>
+        {/* --- PROJECT INFO CARDS (Only visible when IDLE) --- */}
+        <div className={`mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto transition-all duration-700 delay-100 ${isIdle ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 pointer-events-none absolute'}`}>
+           
+           {/* Card 1 */}
+           <div className="p-6 rounded-2xl bg-slate-900/40 border border-white/5 backdrop-blur-sm hover:bg-slate-800/40 hover:border-cyan-500/30 transition-all duration-300 group">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-4 group-hover:scale-110 transition-transform">
+                <BrainCircuit size={20} />
               </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Deep Reasoning</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Uses advanced AI to break down complex topics into clear, step-by-step explanations that are easy to understand.
+              </p>
            </div>
-        )}
 
-        {/* Error State */}
+           {/* Card 2 */}
+           <div className="p-6 rounded-2xl bg-slate-900/40 border border-white/5 backdrop-blur-sm hover:bg-slate-800/40 hover:border-purple-500/30 transition-all duration-300 group">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 transition-transform">
+                <ScanFace size={20} />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Spatial Accessibility</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Generates specialized spatial descriptions that translate visual diagrams into logical, navigational instructions for the visually impaired.
+              </p>
+           </div>
+
+           {/* Card 3 */}
+           <div className="p-6 rounded-2xl bg-slate-900/40 border border-white/5 backdrop-blur-sm hover:bg-slate-800/40 hover:border-indigo-500/30 transition-all duration-300 group">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-4 group-hover:scale-110 transition-transform">
+                <Ear size={20} />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Multimodal Synthesis</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Simultaneously generates flowchart diagrams, text-to-speech audio, and text explanations for a complete sensory learning experience.
+              </p>
+           </div>
+        </div>
+
+        {/* --- ERROR STATE --- */}
         {error && (
-          <div className="max-w-2xl mx-auto p-4 bg-red-500/5 backdrop-blur-sm border border-red-500/20 rounded-xl text-red-200 flex items-center gap-3 animate-fade-in shadow-lg shadow-red-900/20">
+          <div className="max-w-2xl mx-auto mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-200 flex items-center gap-3 animate-fade-in">
             <StopCircle size={20} className="text-red-400 shrink-0" />
             <p className="text-sm font-medium">{error}</p>
           </div>
         )}
 
-        {/* Results Content */}
-        {content && (
-          <div className="animate-fade-in space-y-8 pb-24">
+        {/* --- RESULTS CONTENT --- */}
+        {content && !isIdle && (
+          <div className="animate-fade-in space-y-8 mt-12 pb-24">
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
@@ -379,7 +445,7 @@ export default function App() {
               </div>
 
               {/* Right Column: Visuals & Spatial */}
-              <div className="lg:col-span-5 space-y-6 flex flex-col sticky top-28 self-start">
+              <div className="lg:col-span-5 space-y-6 flex flex-col sticky top-24 self-start">
                 
                 {/* Visual Generator Card */}
                 <div className="bg-slate-900/60 backdrop-blur-md border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
@@ -435,7 +501,7 @@ export default function App() {
             </div>
           </div>
         )}
-
+        
         <div ref={bottomRef} />
       </main>
     </div>
