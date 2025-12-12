@@ -1,4 +1,4 @@
-#SenseAI - Understanding Better Through AI
+# SenseAI - Understanding Better Through AI
 
 SenseAI is a multimodal AI tutor designed to bridge the gap between complex technical concepts and accessibility. By leveraging the latest Google Gemini models, it provides a complete sensory learning experience through deep reasoning, audio synthesis, and visual generation. It is specifically engineered to be inclusive, offering specialized "Spatial Descriptions" that translate visual data into navigational language for the visually impaired.
 
